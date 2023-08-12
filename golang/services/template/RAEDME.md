@@ -8,7 +8,7 @@
 - サービス立ち上げ
 
 ```shell
-docker-compose up -d
+docker compose up -d
 ```
 
 - DBに入る
