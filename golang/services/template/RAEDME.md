@@ -1,6 +1,5 @@
 # Template
 以下を用いた一般的なHTTPサーバーのサンプルテンプレート
-- go 1.20.1
 - gin (http framework)
 - gorm (ORM library)
 
