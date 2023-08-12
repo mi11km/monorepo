@@ -1,4 +1,4 @@
-FROM golang:1.20.1-alpine as builder
+FROM golang:1.21.0-alpine as builder
 ENV HOME /app
 WORKDIR $HOME
 COPY go.mod go.sum $HOME
