@@ -3,7 +3,7 @@
 - gin (http framework)
 - gorm (ORM library)
 
-### development(using docker-compose)
+## development(using docker-compose)
 
 - サービス立ち上げ
 
@@ -19,7 +19,13 @@ docker exec -it template_service_database mysql -u root -p
 
 passwordは`root`
 
-### build for prd
+## build for prd
 ```shell
 docker build --target prd -t $IMAGE_NAME:$TAG .
 ```
+
+
+### おまけ
+gRPCサーバーとクライアントのサンプルコード
+- `cmd/grpcserver/main.go`
+- `cmd/grpcclient/main.go`

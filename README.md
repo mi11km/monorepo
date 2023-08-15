@@ -6,5 +6,6 @@
 
 ## Setup
 ```shell
-asdf install
+make setup
+export PATH="$PATH:$(go env GOPATH)/bin"
 ```
