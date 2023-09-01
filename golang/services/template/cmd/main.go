@@ -41,7 +41,7 @@ func main() {
 	}
 
 	server := grpc.NewServer()
-	pb.RegisterPingServiceServer(server, interfaces.NewPingServer(mysql))
+	pb.RegisterPingServiceServer(server, interfaces.NewPingServer())
 	reflection.Register(server)
 
 	go func() {
