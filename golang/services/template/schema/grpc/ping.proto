@@ -12,6 +12,7 @@ service PingService {
   rpc Ping (PingRequest) returns (PingResponse);
   rpc PingServerStream (PingRequest) returns (stream PingResponse);
   rpc PingClientStream (stream PingRequest) returns (PingResponse);
+  rpc PingBidirectionalStream (stream PingRequest) returns (stream PingResponse);
 }
 
 message PingRequest {

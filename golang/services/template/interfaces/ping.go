@@ -56,3 +56,21 @@ func (s *Server) PingClientStream(stream pb.PingService_PingClientStreamServer) 
 		msgList = append(msgList, req.GetMessage())
 	}
 }
+
+func (s *Server) PingBidirectionalStream(stream pb.PingService_PingBidirectionalStreamServer) error {
+	for {
+		req, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if err := stream.Send(&pb.PingResponse{
+			Message:   fmt.Sprintf("Echo: %s", req.GetMessage()),
+			Timestamp: timestamppb.New(time.Now()),
+		}); err != nil {
+			return err
+		}
+	}
+}

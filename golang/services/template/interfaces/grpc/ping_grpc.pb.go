@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	PingService_Ping_FullMethodName             = "/ping.PingService/Ping"
-	PingService_PingServerStream_FullMethodName = "/ping.PingService/PingServerStream"
-	PingService_PingClientStream_FullMethodName = "/ping.PingService/PingClientStream"
+	PingService_Ping_FullMethodName                    = "/ping.PingService/Ping"
+	PingService_PingServerStream_FullMethodName        = "/ping.PingService/PingServerStream"
+	PingService_PingClientStream_FullMethodName        = "/ping.PingService/PingClientStream"
+	PingService_PingBidirectionalStream_FullMethodName = "/ping.PingService/PingBidirectionalStream"
 )
 
 // PingServiceClient is the client API for PingService service.
@@ -31,6 +32,7 @@ type PingServiceClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	PingServerStream(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (PingService_PingServerStreamClient, error)
 	PingClientStream(ctx context.Context, opts ...grpc.CallOption) (PingService_PingClientStreamClient, error)
+	PingBidirectionalStream(ctx context.Context, opts ...grpc.CallOption) (PingService_PingBidirectionalStreamClient, error)
 }
 
 type pingServiceClient struct {
@@ -116,6 +118,37 @@ func (x *pingServicePingClientStreamClient) CloseAndRecv() (*PingResponse, error
 	return m, nil
 }
 
+func (c *pingServiceClient) PingBidirectionalStream(ctx context.Context, opts ...grpc.CallOption) (PingService_PingBidirectionalStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &PingService_ServiceDesc.Streams[2], PingService_PingBidirectionalStream_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &pingServicePingBidirectionalStreamClient{stream}
+	return x, nil
+}
+
+type PingService_PingBidirectionalStreamClient interface {
+	Send(*PingRequest) error
+	Recv() (*PingResponse, error)
+	grpc.ClientStream
+}
+
+type pingServicePingBidirectionalStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *pingServicePingBidirectionalStreamClient) Send(m *PingRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *pingServicePingBidirectionalStreamClient) Recv() (*PingResponse, error) {
+	m := new(PingResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PingServiceServer is the server API for PingService service.
 // All implementations must embed UnimplementedPingServiceServer
 // for forward compatibility
@@ -123,6 +156,7 @@ type PingServiceServer interface {
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	PingServerStream(*PingRequest, PingService_PingServerStreamServer) error
 	PingClientStream(PingService_PingClientStreamServer) error
+	PingBidirectionalStream(PingService_PingBidirectionalStreamServer) error
 	mustEmbedUnimplementedPingServiceServer()
 }
 
@@ -138,6 +172,9 @@ func (UnimplementedPingServiceServer) PingServerStream(*PingRequest, PingService
 }
 func (UnimplementedPingServiceServer) PingClientStream(PingService_PingClientStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method PingClientStream not implemented")
+}
+func (UnimplementedPingServiceServer) PingBidirectionalStream(PingService_PingBidirectionalStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method PingBidirectionalStream not implemented")
 }
 func (UnimplementedPingServiceServer) mustEmbedUnimplementedPingServiceServer() {}
 
@@ -217,6 +254,32 @@ func (x *pingServicePingClientStreamServer) Recv() (*PingRequest, error) {
 	return m, nil
 }
 
+func _PingService_PingBidirectionalStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(PingServiceServer).PingBidirectionalStream(&pingServicePingBidirectionalStreamServer{stream})
+}
+
+type PingService_PingBidirectionalStreamServer interface {
+	Send(*PingResponse) error
+	Recv() (*PingRequest, error)
+	grpc.ServerStream
+}
+
+type pingServicePingBidirectionalStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *pingServicePingBidirectionalStreamServer) Send(m *PingResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *pingServicePingBidirectionalStreamServer) Recv() (*PingRequest, error) {
+	m := new(PingRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PingService_ServiceDesc is the grpc.ServiceDesc for PingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -238,6 +301,12 @@ var PingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "PingClientStream",
 			Handler:       _PingService_PingClientStream_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "PingBidirectionalStream",
+			Handler:       _PingService_PingBidirectionalStream_Handler,
+			ServerStreams: true,
 			ClientStreams: true,
 		},
 	},

@@ -33,10 +33,12 @@ func main() {
 	client := pb.NewPingServiceClient(conn)
 
 	for {
+		fmt.Println()
 		fmt.Println("1: exit")
 		fmt.Println("2: send Request")
 		fmt.Println("3: send PingServerStream")
 		fmt.Println("4: send PingClientStream")
+		fmt.Println("5: send PingBidirectionalStream")
 		fmt.Print("please enter -> ")
 
 		scanner.Scan()
@@ -98,6 +100,48 @@ func main() {
 				return
 			}
 			fmt.Println(res)
+		case "5":
+			stream, err := client.PingBidirectionalStream(context.Background())
+			if err != nil {
+				fmt.Println("client request error:", err)
+				return
+			}
+
+			sendNum := 5
+			fmt.Printf("Please enter your %d messages\n", sendNum)
+
+			var sendEnd, recvEnd bool
+			sendCount := 0
+			for !(sendEnd && recvEnd) {
+				if !sendEnd {
+					scanner.Scan()
+					if err := stream.Send(&pb.PingRequest{Message: scanner.Text()}); err != nil {
+						fmt.Println("stream send error:", err)
+					}
+					sendCount++
+					if sendCount == sendNum {
+						if err := stream.CloseSend(); err != nil {
+							fmt.Println("stream close send error:", err)
+						}
+						sendEnd = true
+					}
+				}
+
+				if !recvEnd {
+					res, err := stream.Recv()
+					if errors.Is(err, io.EOF) {
+						fmt.Println("all the responses have already received.")
+						recvEnd = true
+						continue
+					}
+					if err != nil {
+						fmt.Println("stream receive error:", err)
+					}
+					fmt.Println(res)
+				}
+			}
+		default:
+			fmt.Println("invalid input")
 		}
 	}
 M:
