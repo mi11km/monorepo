@@ -1,5 +1,8 @@
-golang 1.20.1
+golang 1.21.0
+golangci-lint 1.54.2
+protoc 3.20.3
 kubectl 1.24.9
 tilt 0.31.2
 ctlptl 0.8.17
 kind 0.17.0
+

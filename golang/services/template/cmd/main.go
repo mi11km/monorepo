@@ -2,63 +2,70 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"log"
-	"net/http"
+	"log/slog"
+	"net"
 	"os"
+	"os/signal"
+
+	"github.com/mi11km/workspaces/golang/services/template/config"
+	"github.com/mi11km/workspaces/golang/services/template/infrastructures"
+	"github.com/mi11km/workspaces/golang/services/template/interfaces"
+	pb "github.com/mi11km/workspaces/golang/services/template/interfaces/grpc"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
-type DBConfig struct {
-	User     string
-	Password string
-	Host     string
-	Port     string
-	Name     string
-}
-
 func main() {
-	// config
-	port := os.Getenv("PORT")
-	cfg := DBConfig{
-		User:     os.Getenv("MYSQL_USER"),
-		Password: os.Getenv("MYSQL_PASSWORD"),
-		Host:     os.Getenv("MYSQL_HOST"),
-		Port:     os.Getenv("MYSQL_PORT"),
-		Name:     os.Getenv("MYSQL_DATABASE"),
-	}
+	cfg := config.New()
 
-	// init database
-	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name,
-	)
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	opt := &slog.HandlerOptions{
+		AddSource: true,
+		Level:     slog.LevelInfo,
+	}
+	if cfg.Debug {
+		opt.Level = slog.LevelDebug
+	}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, opt))
+	slog.SetDefault(logger)
+
+	mysql, err := infrastructures.NewMySQL(cfg.MySQL.FormatDSN())
 	if err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+	if err := mysql.Ping(); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+	defer func() {
+		if err := mysql.Close(); err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
+		}
+	}()
+
+	// init gRPC server
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.Port))
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
-	// migration (MEMO: マイグレーションは別でプロセスでやったほうがいい)
-	type Ping struct {
-		gorm.Model
-		Message string
-	}
-	if err := db.AutoMigrate(&Ping{}); err != nil {
-		log.Fatal(err)
-	}
+	server := grpc.NewServer()
+	pb.RegisterPingServiceServer(server, interfaces.NewPingServer())
+	reflection.Register(server)
 
-	// init http server
-	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		ping := &Ping{Message: "pong"}
-		db.Create(ping)
-		c.JSON(http.StatusOK, gin.H{
-			"message":  ping.Message,
-			"RDMS":     db.Name(),
-			"database": db.Migrator().CurrentDatabase(),
-		})
-	})
+	go func() {
+		slog.Info(fmt.Sprintf("gRPC server listening on port: %s", cfg.Port))
+		if err := server.Serve(listener); err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
+		}
+	}()
 
-	log.Fatal(r.Run(fmt.Sprintf(":%s", port)))
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	slog.Info("Shutting down gRPC server...")
+	server.GracefulStop()
 }
