@@ -12,6 +12,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 
 	pb "github.com/mi11km/workspaces/golang/services/template/interfaces/grpc"
 )
@@ -51,18 +52,21 @@ func main() {
 		case "2":
 			fmt.Println("Please enter your message")
 			scanner.Scan()
-			msg := scanner.Text()
-			res, err := client.Ping(context.Background(), &pb.PingRequest{Message: msg})
+			res, err := client.Ping(context.Background(), &pb.PingRequest{Message: scanner.Text()})
 			if err != nil {
-				fmt.Println("client request error:", err)
+				// change handling depending on status code.
+				if stat, ok := status.FromError(err); ok {
+					fmt.Printf("code: %s, message: %s, detail: %s\n", stat.Code(), stat.Message(), stat.Details())
+				} else {
+					fmt.Println("client request error:", err)
+				}
 			} else {
 				fmt.Println("server response:", res.GetMessage(), res.GetTimestamp())
 			}
 		case "3":
 			fmt.Println("Please enter your message")
 			scanner.Scan()
-			msg := scanner.Text()
-			stream, err := client.PingServerStream(context.Background(), &pb.PingRequest{Message: msg})
+			stream, err := client.PingServerStream(context.Background(), &pb.PingRequest{Message: scanner.Text()})
 			if err != nil {
 				fmt.Println("client request error:", err)
 				return

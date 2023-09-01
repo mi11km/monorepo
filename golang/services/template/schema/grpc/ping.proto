@@ -23,3 +23,7 @@ message PingResponse {
   string message = 1;
   google.protobuf.Timestamp timestamp = 2;
 }
+
+message ErrDetail {
+  string detail = 1;
+}
