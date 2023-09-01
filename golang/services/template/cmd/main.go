@@ -16,28 +16,39 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
-
 	cfg := config.New()
+
+	opt := &slog.HandlerOptions{
+		AddSource: true,
+		Level:     slog.LevelInfo,
+	}
+	if cfg.Debug {
+		opt.Level = slog.LevelDebug
+	}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, opt))
+	slog.SetDefault(logger)
 
 	mysql, err := infrastructures.NewMySQL(cfg.MySQL.FormatDSN())
 	if err != nil {
-		Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 	if err := mysql.Ping(); err != nil {
-		Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 	defer func() {
 		if err := mysql.Close(); err != nil {
-			Fatal(err)
+			slog.Error(err.Error())
+			os.Exit(1)
 		}
 	}()
 
 	// init gRPC server
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.Port))
 	if err != nil {
-		Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	server := grpc.NewServer()
@@ -47,7 +58,8 @@ func main() {
 	go func() {
 		slog.Info(fmt.Sprintf("gRPC server listening on port: %s", cfg.Port))
 		if err := server.Serve(listener); err != nil {
-			Fatal(err)
+			slog.Error(err.Error())
+			os.Exit(1)
 		}
 	}()
 
@@ -56,9 +68,4 @@ func main() {
 	<-quit
 	slog.Info("Shutting down gRPC server...")
 	server.GracefulStop()
-}
-
-func Fatal(err error) {
-	slog.Error(err.Error())
-	os.Exit(1)
 }
