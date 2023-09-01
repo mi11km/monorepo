@@ -33,8 +33,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			interfaces.UnaryServerLoggingInterceptor,
+			interfaces.UnaryServerLoggingInterceptorSub,
+		),
+		grpc.StreamInterceptor(interfaces.StreamServerInterceptor),
+	)
+
 	pb.RegisterPingServiceServer(server, interfaces.NewPingServer())
+
 	reflection.Register(server)
 
 	go func() {
