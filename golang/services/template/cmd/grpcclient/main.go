@@ -3,8 +3,11 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log"
+	"log/slog"
 	"os"
 
 	"google.golang.org/grpc"
@@ -14,6 +17,8 @@ import (
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
+
 	fmt.Println("start gRPC client")
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -29,7 +34,8 @@ func main() {
 
 	for {
 		fmt.Println("1: send Request")
-		fmt.Println("2: exit")
+		fmt.Println("2: send Stream Request")
+		fmt.Println("3: exit")
 		fmt.Print("please enter -> ")
 
 		scanner.Scan()
@@ -40,14 +46,33 @@ func main() {
 			fmt.Println("Please enter your message")
 			scanner.Scan()
 			msg := scanner.Text()
-			req := &pb.PingRequest{Message: msg}
-			res, err := client.Ping(context.Background(), req)
+			res, err := client.Ping(context.Background(), &pb.PingRequest{Message: msg})
 			if err != nil {
 				fmt.Println("client request error:", err)
 			} else {
 				fmt.Println("server response:", res.GetMessage(), res.GetTimestamp())
 			}
 		case "2":
+			fmt.Println("Please enter your message")
+			scanner.Scan()
+			msg := scanner.Text()
+			stream, err := client.PingServerStream(context.Background(), &pb.PingRequest{Message: msg})
+			if err != nil {
+				fmt.Println("client request error:", err)
+				return
+			}
+			for {
+				res, err := stream.Recv()
+				if errors.Is(err, io.EOF) {
+					fmt.Println("all the responses have already received.")
+					break
+				}
+				if err != nil {
+					fmt.Println("stream receive error:", err)
+				}
+				fmt.Println(res)
+			}
+		case "3":
 			fmt.Println("exit")
 			goto M
 		}

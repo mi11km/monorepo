@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	PingService_Ping_FullMethodName = "/ping.PingService/Ping"
+	PingService_Ping_FullMethodName             = "/ping.PingService/Ping"
+	PingService_PingServerStream_FullMethodName = "/ping.PingService/PingServerStream"
 )
 
 // PingServiceClient is the client API for PingService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PingServiceClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
+	PingServerStream(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (PingService_PingServerStreamClient, error)
 }
 
 type pingServiceClient struct {
@@ -46,11 +48,44 @@ func (c *pingServiceClient) Ping(ctx context.Context, in *PingRequest, opts ...g
 	return out, nil
 }
 
+func (c *pingServiceClient) PingServerStream(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (PingService_PingServerStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &PingService_ServiceDesc.Streams[0], PingService_PingServerStream_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &pingServicePingServerStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type PingService_PingServerStreamClient interface {
+	Recv() (*PingResponse, error)
+	grpc.ClientStream
+}
+
+type pingServicePingServerStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *pingServicePingServerStreamClient) Recv() (*PingResponse, error) {
+	m := new(PingResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PingServiceServer is the server API for PingService service.
 // All implementations must embed UnimplementedPingServiceServer
 // for forward compatibility
 type PingServiceServer interface {
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
+	PingServerStream(*PingRequest, PingService_PingServerStreamServer) error
 	mustEmbedUnimplementedPingServiceServer()
 }
 
@@ -60,6 +95,9 @@ type UnimplementedPingServiceServer struct {
 
 func (UnimplementedPingServiceServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedPingServiceServer) PingServerStream(*PingRequest, PingService_PingServerStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method PingServerStream not implemented")
 }
 func (UnimplementedPingServiceServer) mustEmbedUnimplementedPingServiceServer() {}
 
@@ -92,6 +130,27 @@ func _PingService_Ping_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PingService_PingServerStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PingRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(PingServiceServer).PingServerStream(m, &pingServicePingServerStreamServer{stream})
+}
+
+type PingService_PingServerStreamServer interface {
+	Send(*PingResponse) error
+	grpc.ServerStream
+}
+
+type pingServicePingServerStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *pingServicePingServerStreamServer) Send(m *PingResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // PingService_ServiceDesc is the grpc.ServiceDesc for PingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -104,6 +163,12 @@ var PingService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PingService_Ping_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "PingServerStream",
+			Handler:       _PingService_PingServerStream_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "ping.proto",
 }

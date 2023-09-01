@@ -8,7 +8,6 @@ import (
 	"os/signal"
 
 	"github.com/mi11km/workspaces/golang/services/template/config"
-	"github.com/mi11km/workspaces/golang/services/template/infrastructures"
 	"github.com/mi11km/workspaces/golang/services/template/interfaces"
 	pb "github.com/mi11km/workspaces/golang/services/template/interfaces/grpc"
 	"google.golang.org/grpc"
@@ -25,24 +24,7 @@ func main() {
 	if cfg.Debug {
 		opt.Level = slog.LevelDebug
 	}
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, opt))
-	slog.SetDefault(logger)
-
-	mysql, err := infrastructures.NewMySQL(cfg.MySQL.FormatDSN())
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-	if err := mysql.Ping(); err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-	defer func() {
-		if err := mysql.Close(); err != nil {
-			slog.Error(err.Error())
-			os.Exit(1)
-		}
-	}()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, opt)))
 
 	// init gRPC server
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.Port))

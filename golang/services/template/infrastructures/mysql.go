@@ -49,3 +49,22 @@ func (m *MySQL) Close() error {
 func (m *MySQL) Ping() error {
 	return m.db.Ping()
 }
+
+/*
+usage:
+	mysql, err := infrastructures.NewMySQL(cfg.MySQL.FormatDSN())
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+	if err := mysql.Ping(); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+	defer func() {
+		if err := mysql.Close(); err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
+		}
+	}()
+*/

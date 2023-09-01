@@ -23,3 +23,17 @@ func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingRespons
 		Timestamp: timestamppb.New(time.Now()),
 	}, nil
 }
+
+func (s *Server) PingServerStream(req *pb.PingRequest, steam pb.PingService_PingServerStreamServer) error {
+	resCount := 5
+	for i := 0; i < resCount; i++ {
+		if err := steam.Send(&pb.PingResponse{
+			Message:   fmt.Sprintf("[%d] Echo: %s", i, req.GetMessage()),
+			Timestamp: timestamppb.New(time.Now()),
+		}); err != nil {
+			return err
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return nil
+}
