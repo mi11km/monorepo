@@ -1,6 +1,5 @@
 # Template
-以下を用いた一般的なHTTPサーバーのサンプルテンプレート
-- gin (http framework)
+以下を用いた一般的なgRPCサーバーのサンプルテンプレート
 - gorm (ORM library)
 
 ## development(using docker-compose)
@@ -26,6 +25,10 @@ docker build --target prd -t $IMAGE_NAME:$TAG .
 
 
 ### おまけ
-gRPCサーバーとクライアントのサンプルコード
-- `cmd/grpcserver/main.go`
+gRPCクライアントのサンプルコード
 - `cmd/grpcclient/main.go`
+
+grpcurlのサンプル
+```shell
+grpcurl -plaintext -d '{"message":"hoge"}' localhost:8080 list ping.PingService.Ping
+```

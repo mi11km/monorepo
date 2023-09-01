@@ -2,12 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
+	"log/slog"
+	"net"
+	"os"
+	"os/signal"
+
+	"github.com/mi11km/workspaces/golang/services/template/interfaces"
+	pb "github.com/mi11km/workspaces/golang/services/template/interfaces/grpc"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
-	"os"
 )
 
 type DBConfig struct {
@@ -29,6 +34,10 @@ func main() {
 		Name:     os.Getenv("MYSQL_DATABASE"),
 	}
 
+	// init logger
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
 	// init database
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
@@ -36,7 +45,8 @@ func main() {
 	)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	// migration (MEMO: マイグレーションは別でプロセスでやったほうがいい)
@@ -45,20 +55,34 @@ func main() {
 		Message string
 	}
 	if err := db.AutoMigrate(&Ping{}); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
-	// init http server
-	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		ping := &Ping{Message: "pong"}
-		db.Create(ping)
-		c.JSON(http.StatusOK, gin.H{
-			"message":  ping.Message,
-			"RDMS":     db.Name(),
-			"database": db.Migrator().CurrentDatabase(),
-		})
-	})
+	// init gRPC server
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
 
-	log.Fatal(r.Run(fmt.Sprintf(":%s", port)))
+	server := grpc.NewServer()
+
+	pb.RegisterPingServiceServer(server, interfaces.NewPingServer())
+
+	reflection.Register(server)
+
+	go func() {
+		slog.Info(fmt.Sprintf("gRPC server listening on port: %s", port))
+		if err := server.Serve(listener); err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	slog.Info("Shutting down gRPC server...")
+	server.GracefulStop()
 }

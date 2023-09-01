@@ -25,7 +25,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	client := pb.NewGreetingServiceClient(conn)
+	client := pb.NewPingServiceClient(conn)
 
 	for {
 		fmt.Println("1: send Request")
@@ -37,15 +37,15 @@ func main() {
 
 		switch input {
 		case "1":
-			fmt.Println("Please enter your name")
+			fmt.Println("Please enter your message")
 			scanner.Scan()
-			name := scanner.Text()
-			req := &pb.HelloRequest{Name: name}
-			res, err := client.Hello(context.Background(), req)
+			msg := scanner.Text()
+			req := &pb.PingRequest{Message: msg}
+			res, err := client.Ping(context.Background(), req)
 			if err != nil {
 				fmt.Println("client request error:", err)
 			} else {
-				fmt.Println("server response:", res.GetMessage())
+				fmt.Println("server response:", res.GetMessage(), res.GetTimestamp())
 			}
 		case "2":
 			fmt.Println("exit")

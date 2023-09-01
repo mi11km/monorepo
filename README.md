@@ -7,5 +7,4 @@
 ## Setup
 ```shell
 make setup
-export PATH="$PATH:$(go env GOPATH)/bin"
 ```
