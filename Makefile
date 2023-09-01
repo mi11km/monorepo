@@ -14,7 +14,7 @@ test:
 	go test -v ./...
 
 gen:
-	export PATH="$(PATH):$(go env GOPATH)/bin" && \
+	export PATH="$(PATH):$$(go env GOPATH)/bin" && \
     cd $(GRPC_SOURCE_DIR) && \
     protoc --go_out=$(GRPC_OUTPUT_DIR) \
       --go_opt=paths=source_relative \
