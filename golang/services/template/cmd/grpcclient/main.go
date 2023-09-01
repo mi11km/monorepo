@@ -17,6 +17,48 @@ import (
 	pb "github.com/mi11km/workspaces/golang/services/template/interfaces/grpc"
 )
 
+/* Interceptors */
+
+func UnaryClientInterceptor(ctx context.Context, method string, req, reply interface{},
+	cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	slog.Info(fmt.Sprintf("[pre] unary client interceptor, gRPC method: %s, req: %v", method, req))
+	err := invoker(ctx, method, req, reply, cc, opts...)
+	slog.Info(fmt.Sprintf("[post] unary client interceptor, gRPC method: %s, res: %v", method, reply))
+	return err
+}
+
+func StreamClientInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn,
+	method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+	slog.Info(fmt.Sprintf("[pre] stream client interceptor, gRPC method: %s", method))
+	stream, err := streamer(ctx, desc, cc, method, opts...)
+	return &ClientStreamWrapper{stream}, err
+}
+
+type ClientStreamWrapper struct {
+	grpc.ClientStream
+}
+
+func (w *ClientStreamWrapper) SendMsg(m interface{}) error {
+	slog.Info(fmt.Sprintf("[pre message] send message: %v", m)) // リクエスト送信前に割り込ませる処理
+	return w.ClientStream.SendMsg(m)
+}
+
+func (w *ClientStreamWrapper) RecvMsg(m interface{}) error {
+	err := w.ClientStream.RecvMsg(m)
+	if !errors.Is(err, io.EOF) {
+		slog.Info(fmt.Sprintf("[post message] recv message: %v", m)) // レスポンス受信後に割り込ませる処理
+	}
+	return err
+}
+
+func (w *ClientStreamWrapper) CloseSend() error {
+	err := w.ClientStream.CloseSend()
+	slog.Info("[post] stream client interceptor, close send")
+	return err
+}
+
+/* Main */
+
 func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
@@ -25,7 +67,14 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	address := "localhost:8080"
-	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.DialContext(
+		context.Background(),
+		address,
+		grpc.WithUnaryInterceptor(UnaryClientInterceptor),
+		grpc.WithStreamInterceptor(StreamClientInterceptor),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
 	if err != nil {
 		log.Fatal("client connection error:", err)
 	}
