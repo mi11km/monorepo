@@ -2,7 +2,9 @@ package interfaces
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	pb "github.com/mi11km/workspaces/golang/services/template/interfaces/grpc"
@@ -36,4 +38,21 @@ func (s *Server) PingServerStream(req *pb.PingRequest, steam pb.PingService_Ping
 		time.Sleep(1 * time.Second)
 	}
 	return nil
+}
+
+func (s *Server) PingClientStream(stream pb.PingService_PingClientStreamServer) error {
+	msgList := make([]string, 0)
+	for {
+		req, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			return stream.SendAndClose(&pb.PingResponse{
+				Message:   fmt.Sprintf("Echo: %v", msgList),
+				Timestamp: timestamppb.New(time.Now()),
+			})
+		}
+		if err != nil {
+			return err
+		}
+		msgList = append(msgList, req.GetMessage())
+	}
 }

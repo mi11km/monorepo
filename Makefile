@@ -5,11 +5,13 @@ setup:
 	asdf install
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest # go vulnerabilities check
 
 test:
 	go mod tidy
 	go fmt ./...
 	go vet ./...
+	govulncheck ./...
 	golangci-lint run
 	go test -v ./...
 

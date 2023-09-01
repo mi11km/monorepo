@@ -11,6 +11,7 @@ package ping;
 service PingService {
   rpc Ping (PingRequest) returns (PingResponse);
   rpc PingServerStream (PingRequest) returns (stream PingResponse);
+  rpc PingClientStream (stream PingRequest) returns (PingResponse);
 }
 
 message PingRequest {

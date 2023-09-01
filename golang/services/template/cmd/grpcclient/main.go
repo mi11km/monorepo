@@ -33,9 +33,10 @@ func main() {
 	client := pb.NewPingServiceClient(conn)
 
 	for {
-		fmt.Println("1: send Request")
-		fmt.Println("2: send Stream Request")
-		fmt.Println("3: exit")
+		fmt.Println("1: exit")
+		fmt.Println("2: send Request")
+		fmt.Println("3: send PingServerStream")
+		fmt.Println("4: send PingClientStream")
 		fmt.Print("please enter -> ")
 
 		scanner.Scan()
@@ -43,6 +44,9 @@ func main() {
 
 		switch input {
 		case "1":
+			fmt.Println("exit")
+			goto M
+		case "2":
 			fmt.Println("Please enter your message")
 			scanner.Scan()
 			msg := scanner.Text()
@@ -52,7 +56,7 @@ func main() {
 			} else {
 				fmt.Println("server response:", res.GetMessage(), res.GetTimestamp())
 			}
-		case "2":
+		case "3":
 			fmt.Println("Please enter your message")
 			scanner.Scan()
 			msg := scanner.Text()
@@ -72,9 +76,28 @@ func main() {
 				}
 				fmt.Println(res)
 			}
-		case "3":
-			fmt.Println("exit")
-			goto M
+		case "4":
+			stream, err := client.PingClientStream(context.Background())
+			if err != nil {
+				fmt.Println("client request error:", err)
+				return
+			}
+
+			sendCount := 5
+			fmt.Printf("Please enter your %d messages\n", sendCount)
+			for i := 0; i < sendCount; i++ {
+				scanner.Scan()
+				if err := stream.Send(&pb.PingRequest{Message: scanner.Text()}); err != nil {
+					fmt.Println("stream send error:", err)
+					return
+				}
+			}
+			res, err := stream.CloseAndRecv()
+			if err != nil {
+				fmt.Println("stream close and receive error:", err)
+				return
+			}
+			fmt.Println(res)
 		}
 	}
 M:
