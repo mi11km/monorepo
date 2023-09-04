@@ -18,8 +18,8 @@ func main() {
 	cfg := config.New()
 
 	opt := &slog.HandlerOptions{
-		//AddSource: true,
-		Level: slog.LevelInfo,
+		AddSource: cfg.Debug,
+		Level:     slog.LevelInfo,
 	}
 	if cfg.Debug {
 		opt.Level = slog.LevelDebug
