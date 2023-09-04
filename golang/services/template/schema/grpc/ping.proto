@@ -10,8 +10,10 @@ package ping;
 
 service PingService {
   rpc Ping (PingRequest) returns (PingResponse);
+  rpc PingServerStream (PingRequest) returns (stream PingResponse);
+  rpc PingClientStream (stream PingRequest) returns (PingResponse);
+  rpc PingBidirectionalStream (stream PingRequest) returns (stream PingResponse);
 }
-
 
 message PingRequest {
   string message = 1;
@@ -20,4 +22,8 @@ message PingRequest {
 message PingResponse {
   string message = 1;
   google.protobuf.Timestamp timestamp = 2;
+}
+
+message ErrDetail {
+  string detail = 1;
 }
