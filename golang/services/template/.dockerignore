@@ -1,8 +1,0 @@
-.dockerignore
-compose.yml
-Dockerfile
-Makefile
-RAEDME.md
-
-.cache/
-tmp/
