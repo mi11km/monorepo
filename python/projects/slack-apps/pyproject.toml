@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "slack-apps"
+version = "0.1.0"
+description = ""
+authors = ["mi11km <mi11km.program@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+slack-bolt = "^1.18.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
