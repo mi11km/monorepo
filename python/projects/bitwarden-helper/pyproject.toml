@@ -1,10 +1,11 @@
 [tool.poetry]
-name = "slack-apps"
+name = "bitwarden-helper"
 version = "0.1.0"
 description = ""
 authors = ["mi11km <mi11km.program@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+packages = [{include = "bitwarden-helper", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
