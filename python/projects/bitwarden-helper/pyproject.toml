@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "bitwarden-helper"
+version = "0.1.0"
+description = ""
+authors = ["mi11km <mi11km.program@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "bitwarden-helper", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+slack-bolt = "^1.18.0"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+mypy = "^1.7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
